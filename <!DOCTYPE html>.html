@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Waterdrop Dodge</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      canvas {
+        display: block;
+        margin: 0 auto;
+        background-color: white;
+        border: 1px solid black;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script>
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // 게임 환경 설정
+      const WIDTH = canvas.width;
+      const HEIGHT = canvas.height;
+      const FPS = 60;
+
+      // 플레이어 캐릭터 클래스
+      class Player {
+        constructor() {
+          this.width = 50;
+          this.height = 50;
+          this.x = WIDTH / 2 - this.width / 2;
+          this.y = HEIGHT - 10 - this.height;
+          this.speed = 5;
+          this.color = "yellow";
+        }
+
+        update() {
+          if (keys[37]) {
+            // 왼쪽 화살표 키
+            this.x -= this.speed;
+          }
+          if (keys[39]) {
+            // 오른쪽 화살표 키
+            this.x += this.speed;
+          }
+          if (this.x < 0) {
+            this.x = 0;
+          }
+          if (this.x + this.width > WIDTH) {
+            this.x = WIDTH - this.width;
+          }
+        }
+
+        draw() {
+          ctx.fillStyle = this.color;
+          ctx.fillRect(this.x, this.y, this.width, this.height);
+        }
+      }
+
+      // 물방울 클래스
+      class Waterdrop {
+        constructor(speed) {
+          this.width = 30;
+          this.height = 30;
+          this.x = Math.random() * (WIDTH - this.width);
+          this.y = -this.height;
+          this.speedy = speed;
+          this.color = "blue";
+        }
+
+        update() {
+          this.y += this.speedy;
+          if (this.y > HEIGHT) {
+            this.reset();
+          }
+        }
+
+        reset() {
+          this.x = Math.random() * (WIDTH - this.width);
+          this.y = -this.height;
+        }
+
+        draw() {
+          ctx.fillStyle = this.color;
+          ctx.fillRect(this.x, this.y, this.width, this.height);
+        }
+      }
+
+      // 키 입력 상태 저장
+      const keys = {};
+
+      document.addEventListener("keydown", (e) => {
+        keys[e.keyCode] = true;
+      });
+
+      document.addEventListener("keyup", (e) => {
+        delete keys[e.keyCode];
+      });
+
+      // 플레이어 생성
+      const player = new Player();
+
+      // 물방울 생성
+      let waterdrops = [];
+      let stage = 1;
+      let waterdropSpeed = 2;
+
+      function createWaterdrops() {
+        waterdrops = [];
+        for (let i = 0; i < stage * 5; i++) {
+          waterdrops.push(new Waterdrop(waterdropSpeed));
+        }
+      }
+
+      // 게임 시작 시간 초기화
+      let start_time = Date.now();
+
+      // 메시지 및 플레이 버튼
+      let showMessage = false;
+      let showPlayButton = false;
+
+      function showStageMessage() {
+        showMessage = true;
+        showPlayButton = true;
+      }
+
+      function createPlayButton() {
+        const button = document.createElement("button");
+        button.innerHTML = "Play";
+        button.style.position = "absolute";
+        button.style.top = `${HEIGHT / 2 + 50}px`;
+        button.style.left = `${WIDTH / 2 - 50}px`;
+        button.style.color = "yellow";
+        button.addEventListener("click", restartGame);
+        document.body.appendChild(button);
+      }
+
+      function restartGame() {
+        showMessage = false;
+        showPlayButton = false;
+        stage = 1;
+        waterdropSpeed = 2;
+        createWaterdrops();
+        start_time = Date.now();
+        document.body.removeChild(document.querySelector("button"));
+      }
+
+      // 게임 루프
+      function gameLoop() {
+        requestAnimationFrame(gameLoop);
+
+        // 캔버스 지우기
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+        // 게임 시간 계산
+        const elapsed_time = Math.floor((Date.now() - start_time) / 1000);
+
+        if (elapsed_time % 10 === 0 && elapsed_time !== 0) {
+          // 10초마다 난이도 증가
+          stage = Math.floor(elapsed_time / 10) + 1;
+          waterdropSpeed *= 1.5;
+          createWaterdrops();
+          showStageMessage();
+        }
+
+        player.update();
+        player.draw();
+
+        waterdrops.forEach((waterdrop) => {
+          waterdrop.update();
+          waterdrop.draw();
+
+          if (
+            player.x < waterdrop.x + waterdrop.width &&
+            player.x + player.width > waterdrop.x &&
+            player.y < waterdrop.y + waterdrop.height &&
+            player.y + player.height > waterdrop.y
+          ) {
+            gameOver();
+          }
+        });
+
+        if (showMessage) {
+          ctx.fillStyle = "black";
+          ctx.font = "24px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("Stage Clear! Click Play to Next Stage", WIDTH / 2, HEIGHT / 2);
+        }
+
+        if (showPlayButton) {
+          createPlayButton();
+        }
+      }
+
+      function gameOver() {
+        ctx.fillStyle = "black";
+        ctx.font = "36px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Game Over", WIDTH / 2, HEIGHT / 2);
+        showPlayButton = true;
+        createPlayButton();
+      }
+
+      createWaterdrops();
+      gameLoop();
+    </script>
+  </body>
+</html>
